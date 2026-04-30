@@ -1,24 +1,24 @@
 ---
 name: wiki
 description: >-
-  LLM Wiki — persistent, compounding knowledge base inside Obsidian.
-  Use when the user says "/llm-wiki:wiki", "wiki init", "wiki ingest",
+  scridos — persistent, compounding knowledge base inside Obsidian.
+  Use when the user says "/scridos:wiki", "wiki init", "wiki ingest",
   "wiki query", "wiki lint", or asks about managing a knowledge base wiki.
 argument-hint: init <name> | ingest <path|url> | compile [<path>] | query <question> | lint | remove <name>
 ---
 
-# LLM Wiki
+# scridos
 
-Persistent, compounding knowledge base inside an Obsidian vault.
+Persistent, compounding knowledge base inside an Obsidian vault. Based on Karpathy's LLM Wiki pattern.
 
 ## Operations
 
 ```
-/llm-wiki:wiki init my-topic
-/llm-wiki:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
-/llm-wiki:wiki ingest https://example.com/article
-/llm-wiki:wiki query "What is X?"
-/llm-wiki:wiki lint
+/scridos:wiki init my-topic
+/scridos:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
+/scridos:wiki ingest https://example.com/article
+/scridos:wiki query "What is X?"
+/scridos:wiki lint
 ```
 
 ---
@@ -100,7 +100,7 @@ Create a new wiki scaffold under the Obsidian vault.
      2. In clipper settings, set Destination folder to:
         03-Resources/<name>/raw/articles
      3. Set filename template to: {{date:YYYY-MM-DD}}-{{title}}
-     4. After clipping, run: /llm-wiki:wiki ingest ~/ObsidianVault/03-Resources/<name>/raw/articles/<clipped-file>.md
+     4. After clipping, run: /scridos:wiki ingest ~/ObsidianVault/03-Resources/<name>/raw/articles/<clipped-file>.md
      ```
 
 ---

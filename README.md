@@ -1,11 +1,13 @@
-# llm-wiki
+# scridos
 
-A Claude Code plugin that builds persistent, compounding knowledge bases inside Obsidian using the Karpathy LLM Wiki pattern. Ingest sources, query synthesized knowledge, lint for gaps — all from your Claude Code session.
+A Claude Code plugin that builds persistent, compounding knowledge bases inside Obsidian using Karpathy's LLM Wiki pattern. Ingest sources, query synthesized knowledge, lint for gaps — all from your Claude Code session.
+
+> Forked from [ekadetov/llm-wiki](https://github.com/ekadetov/llm-wiki). Renamed and extended for the Eidos AGI ecosystem.
 
 ## Installation
 
 ```bash
-claude plugin install /path/to/llm-wiki
+claude plugin install /path/to/scridos
 ```
 
 ### Prerequisites
@@ -21,7 +23,7 @@ Dependencies (`qmd`, `marp-cli`) are installed automatically on first session st
 ### Initialize a new wiki
 
 ```
-/llm-wiki:wiki init my-topic
+/scridos:wiki init my-topic
 ```
 
 Creates `~/ObsidianVault/03-Resources/my-topic/` with the full wiki structure: `raw/`, `wiki/`, `CLAUDE.md` schema, indexes, and git tracking.
@@ -29,8 +31,8 @@ Creates `~/ObsidianVault/03-Resources/my-topic/` with the full wiki structure: `
 ### Ingest a source
 
 ```
-/llm-wiki:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
-/llm-wiki:wiki ingest https://example.com/interesting-article
+/scridos:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
+/scridos:wiki ingest https://example.com/interesting-article
 ```
 
 Saves the source to `raw/articles/`. Does not create wiki pages — use `compile` for that.
@@ -38,8 +40,8 @@ Saves the source to `raw/articles/`. Does not create wiki pages — use `compile
 ### Compile raw sources into wiki
 
 ```
-/llm-wiki:wiki compile
-/llm-wiki:wiki compile ~/ObsidianVault/03-Resources/my-topic/raw/articles/2026-04-05-article.md
+/scridos:wiki compile
+/scridos:wiki compile ~/ObsidianVault/03-Resources/my-topic/raw/articles/2026-04-05-article.md
 ```
 
 Reads uncompiled raw sources, creates/updates wiki pages (source summary, concept pages, person pages), updates the index, and commits.
@@ -47,7 +49,7 @@ Reads uncompiled raw sources, creates/updates wiki pages (source summary, concep
 ### Query the wiki
 
 ```
-/llm-wiki:wiki query "What is the relationship between X and Y?"
+/scridos:wiki query "What is the relationship between X and Y?"
 ```
 
 Searches the wiki (via qmd if available, otherwise index.md), reads relevant pages, and synthesizes an answer with `[[wikilink]]` citations. Offers to file the answer back into the wiki.
@@ -55,7 +57,7 @@ Searches the wiki (via qmd if available, otherwise index.md), reads relevant pag
 ### Lint the wiki
 
 ```
-/llm-wiki:wiki lint
+/scridos:wiki lint
 ```
 
 Checks for dead links, orphan pages, missing sections, contradictions, stale pages, and index drift. Auto-fixes what it can.
@@ -63,7 +65,7 @@ Checks for dead links, orphan pages, missing sections, contradictions, stale pag
 ### Remove a wiki
 
 ```
-/llm-wiki:wiki remove my-topic
+/scridos:wiki remove my-topic
 ```
 
 Deletes the wiki directory, removes the qmd collection, and commits the deletion.
@@ -100,7 +102,7 @@ qmd provides hybrid search (BM25 + vector) over the wiki. It's optional — the 
 ## Uninstall
 
 ```bash
-claude plugin uninstall llm-wiki
+claude plugin uninstall scridos
 ```
 
 This removes the plugin and its dependency cache. Your wiki data in `~/ObsidianVault/` is preserved.

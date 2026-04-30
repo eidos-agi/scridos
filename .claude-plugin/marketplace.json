@@ -1,13 +1,13 @@
 {
-  "name": "llm-wiki",
+  "name": "scridos",
   "owner": {
-    "name": "ekadetov"
+    "name": "Eidos AGI"
   },
   "plugins": [
     {
-      "name": "llm-wiki",
+      "name": "scridos",
       "source": "./",
-      "description": "LLM Wiki — persistent, compounding knowledge base inside Obsidian. Based on Karpathy's LLM Wiki pattern."
+      "description": "scridos — persistent, compounding knowledge base inside Obsidian. Based on Karpathy's LLM Wiki pattern."
     }
   ]
 }

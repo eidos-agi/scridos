@@ -1,8 +1,8 @@
 {
-  "name": "llm-wiki",
+  "name": "scridos",
   "version": "2.0.0",
-  "description": "LLM Wiki — persistent, compounding knowledge base inside Obsidian. Ingest, compile, query, lint, and remove knowledge base wikis. Based on Karpathy's LLM Wiki pattern.",
+  "description": "scridos — persistent, compounding knowledge base inside Obsidian. Ingest, compile, query, lint, and remove knowledge base wikis. Based on Karpathy's LLM Wiki pattern.",
   "author": {
-    "name": "ekadetov"
+    "name": "Eidos AGI"
   }
 }

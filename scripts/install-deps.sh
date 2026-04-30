@@ -31,7 +31,7 @@ if [ -f "${SENTINEL}" ] && [ -f "${VERSION_DST}" ] && [ -f "${VERSION_SRC}" ]; t
 fi
 
 # Install dependencies
-echo "[llm-wiki] Installing dependencies..." >&2
+echo "[scridos] Installing dependencies..." >&2
 
 cd "${DATA_DIR}" || exit 0
 
@@ -45,11 +45,11 @@ if npm install @tobilu/qmd @marp-team/marp-cli 2>&1 | tail -5 >&2; then
   # Success: copy version file and write sentinel
   cp "${VERSION_SRC}" "${VERSION_DST}" 2>/dev/null
   touch "${SENTINEL}"
-  echo "[llm-wiki] Dependencies installed successfully." >&2
+  echo "[scridos] Dependencies installed successfully." >&2
 else
   # Failure: remove sentinel so we retry next session
   rm -f "${SENTINEL}" "${VERSION_DST}" 2>/dev/null
-  echo "[llm-wiki] Dependency install failed. Wiki will work without qmd/marp." >&2
+  echo "[scridos] Dependency install failed. Wiki will work without qmd/marp." >&2
 fi
 
 exit 0
