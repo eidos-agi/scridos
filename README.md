@@ -29,16 +29,24 @@ pyenv rehash
 scridos wiki init my-topic
 scridos wiki init my-topic --github
 scridos wiki init 239-eagle --title "239 Eagle Dr" --root ./wiki
+scridos wiki project create "239 Eagle Sale" --wiki ./wiki/239-eagle
+scridos wiki milestone create "Ready to list on MLS" --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos wiki task create "Sign corrected DocuSign packets" --project 239-eagle-sale --milestone ready-to-list-on-mls --wiki ./wiki/239-eagle
+scridos wiki task list --project 239-eagle-sale --wiki ./wiki/239-eagle
 scridos wiki lint ./wiki/239-eagle
 ```
 
-`scridos init` and `scridos lint` are also available as short aliases for the
-same wiki operations.
+`scridos init`, `scridos lint`, `scridos project`, `scridos milestone`, and
+`scridos task` are also available as short aliases for the same operations.
 
 For GitHub-first work, run `scridos wiki init <name> --github` from a repo root.
 That creates `wiki/<name>/` inside the repo so the wiki can be reviewed, linked,
 versioned, and pushed like any other project artifact. This is the preferred
 mode when replacing Notion with GitHub as the operating system.
+
+Projects, milestones, and tasks are stored as plain markdown text files under
+`ops/`. Scridos does not require GitHub Issues; the repo text is the source of
+truth.
 
 ### Initialize a new wiki
 
@@ -97,6 +105,10 @@ Deletes the wiki directory, removes the qmd collection, and commits the deletion
 ├── raw/                  ← immutable source drops (never edited by LLM)
 │   ├── articles/         ← text source documents
 │   └── attachments/      ← images
+├── ops/                  ← text-backed project work
+│   ├── projects/         ← one markdown file per project
+│   ├── milestones/       ← one markdown file per milestone
+│   └── tasks/            ← one markdown file per task
 ├── wiki/                 ← LLM-owned pages
 │   ├── index.md          ← catalog (read first)
 │   ├── queries/          ← filed query answers
