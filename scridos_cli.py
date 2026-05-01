@@ -14,6 +14,8 @@ from pathlib import Path
 
 TODAY = date.today().isoformat()
 KINDS = ("project", "milestone", "task")
+KANBAN_COLUMNS = ("backlog", "ready", "doing", "blocked", "done")
+OPEN_STATUSES = {"open", "backlog", "ready", "doing"}
 
 
 def slugify(value: str) -> str:
@@ -65,7 +67,7 @@ def init_wiki(args: argparse.Namespace) -> int:
         git_commit(root, f"init: {name} wiki")
 
     print(f"Initialized scridos wiki: {root}")
-    print(f"Next: add text tasks under {root / 'ops/tasks'}")
+    print("Next: scridos task add \"First task\"")
     return 0
 
 
@@ -92,14 +94,31 @@ def ops_create(args: argparse.Namespace) -> int:
 
 def ops_list(args: argparse.Namespace) -> int:
     root = resolve_wiki_root(args.wiki)
-    records = read_records(root, args.kind)
+    records = filtered_records(root, args.kind, args)
+    if getattr(args, "next_only", False):
+        records = [r for r in records if r["fields"].get("status", "open") in OPEN_STATUSES]
+        records = sort_tasks(records)[:1]
+    elif args.kind == "task":
+        records = sort_tasks(records)
+    print_records(args.kind, records)
+    return 0
+
+
+def filtered_records(root: Path, kind: str, args: argparse.Namespace) -> list[dict]:
+    records = read_records(root, kind)
     for key in ["project", "milestone", "status", "owner", "priority"]:
         value = getattr(args, key, None)
         if value:
             records = [r for r in records if r["fields"].get(key) == value]
+    if kind == "task" and not getattr(args, "all", False) and not getattr(args, "status", None):
+        records = [r for r in records if r["fields"].get("status", "open") not in {"done", "closed"}]
+    return records
+
+
+def print_records(kind: str, records: list[dict]) -> None:
     if not records:
-        print(f"No {args.kind}s found.")
-        return 0
+        print(f"No {kind}s found.")
+        return
     for record in records:
         fields = record["fields"]
         parts = [fields["id"], fields["title"]]
@@ -107,7 +126,22 @@ def ops_list(args: argparse.Namespace) -> int:
             if fields.get(key):
                 parts.append(f"{key}={fields[key]}")
         print(" | ".join(parts))
-    return 0
+
+
+def sort_tasks(records: list[dict]) -> list[dict]:
+    priority_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    status_rank = {"doing": 0, "ready": 1, "open": 1, "backlog": 2, "blocked": 8, "done": 9}
+
+    def key(record: dict) -> tuple:
+        fields = record["fields"]
+        return (
+            status_rank.get(fields.get("status", "").lower(), 5),
+            priority_rank.get(fields.get("priority", "").lower(), 9),
+            fields.get("due") or "9999-99-99",
+            fields.get("title", ""),
+        )
+
+    return sorted(records, key=key)
 
 
 def ops_show(args: argparse.Namespace) -> int:
@@ -152,6 +186,85 @@ def ops_delete(args: argparse.Namespace) -> int:
     return 0
 
 
+def task_done(args: argparse.Namespace) -> int:
+    args.kind = "task"
+    args.status = "done"
+    args.body = None
+    args.title = None
+    args.source = None
+    args.project = None
+    args.milestone = None
+    args.owner = None
+    args.priority = None
+    args.due = None
+    args.next_action = None
+    return ops_update(args)
+
+
+def task_move(args: argparse.Namespace) -> int:
+    args.kind = "task"
+    args.body = None
+    args.title = None
+    args.source = None
+    args.project = None
+    args.milestone = None
+    args.owner = None
+    args.priority = None
+    args.due = None
+    args.next_action = None
+    return ops_update(args)
+
+
+def task_next(args: argparse.Namespace) -> int:
+    args.kind = "task"
+    args.next_only = True
+    if not getattr(args, "all", False) and not getattr(args, "status", None):
+        args.status = None
+    return ops_list(args)
+
+
+def work_list(args: argparse.Namespace) -> int:
+    root = resolve_wiki_root(args.wiki)
+    print("Projects")
+    print_records("project", filtered_records(root, "project", args))
+    print("\nMilestones")
+    print_records("milestone", filtered_records(root, "milestone", args))
+    print("\nTasks")
+    print_records("task", sort_tasks(filtered_records(root, "task", args)))
+    return 0
+
+
+def board_view(args: argparse.Namespace) -> int:
+    root = resolve_wiki_root(args.wiki)
+    records = sort_tasks(filtered_records(root, "task", args))
+    by_status = {column: [] for column in KANBAN_COLUMNS}
+    by_status["other"] = []
+    for record in records:
+        status = record["fields"].get("status", "open")
+        if status == "open":
+            status = "ready"
+        by_status.setdefault(status, by_status["other"]).append(record)
+
+    for column in [*KANBAN_COLUMNS, "other"]:
+        items = by_status.get(column, [])
+        if not items and not args.all:
+            continue
+        print(column.upper())
+        if not items:
+            print("  empty")
+            continue
+        for record in items:
+            fields = record["fields"]
+            meta = []
+            for key in ["priority", "due", "owner"]:
+                if fields.get(key):
+                    meta.append(f"{key}={fields[key]}")
+            suffix = f" ({', '.join(meta)})" if meta else ""
+            print(f"  - {fields['id']}: {fields['title']}{suffix}")
+        print()
+    return 0
+
+
 def resolve_wiki_root(path: str) -> Path:
     current = Path(path).expanduser().resolve()
     if current.is_file():
@@ -159,6 +272,9 @@ def resolve_wiki_root(path: str) -> Path:
     while True:
         if (current / "CLAUDE.md").is_file() and (current / "wiki").is_dir():
             return current
+        candidates = sorted((current / "wiki").glob("*/CLAUDE.md")) if (current / "wiki").is_dir() else []
+        if len(candidates) == 1:
+            return candidates[0].parent
         if current == current.parent:
             break
         current = current.parent
@@ -428,7 +544,10 @@ Initialized scridos wiki scaffold.
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="scridos")
+    parser = argparse.ArgumentParser(
+        prog="scridos",
+        description="Repo-native wiki and work management.",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     add_commands(sub)
@@ -457,19 +576,40 @@ def add_commands(sub: argparse._SubParsersAction) -> None:
     for kind in KINDS:
         add_ops_commands(sub, kind)
 
+    next_cmd = sub.add_parser("next", help="show the next open task")
+    add_task_filter_args(next_cmd)
+    next_cmd.set_defaults(func=task_next)
+
+    board = sub.add_parser("board", help="show tasks as a kanban board")
+    add_task_filter_args(board)
+    board.set_defaults(func=board_view)
+
+    work = sub.add_parser("work", help="project work commands")
+    work_actions = work.add_subparsers(dest="action", required=True)
+    work_list_cmd = work_actions.add_parser("list", help="list active projects, milestones, and tasks")
+    add_task_filter_args(work_list_cmd)
+    work_list_cmd.set_defaults(func=work_list)
+    work_next_cmd = work_actions.add_parser("next", help="show the next open task")
+    add_task_filter_args(work_next_cmd)
+    work_next_cmd.set_defaults(func=task_next)
+    work_board_cmd = work_actions.add_parser("board", help="show tasks as a kanban board")
+    add_task_filter_args(work_board_cmd)
+    work_board_cmd.set_defaults(func=board_view)
+
 
 def add_ops_commands(sub: argparse._SubParsersAction, kind: str) -> None:
-    parent = sub.add_parser(kind, help=f"text-backed {kind} CRUD")
+    parent = sub.add_parser(kind, help=f"{kind} commands")
     actions = parent.add_subparsers(dest="action", required=True)
 
-    create = actions.add_parser("create", help=f"create a {kind}")
-    add_common_ops_args(create)
-    create.add_argument("title")
-    create.add_argument("--id")
-    create.add_argument("--status", default="open")
-    create.add_argument("--body")
-    add_edit_args(create, kind)
-    create.set_defaults(func=ops_create, kind=kind)
+    for action in ["create", "add"]:
+        create = actions.add_parser(action, help=f"add a {kind}")
+        add_common_ops_args(create)
+        create.add_argument("title")
+        create.add_argument("--id")
+        create.add_argument("--status", default="backlog" if kind == "task" else "open")
+        create.add_argument("--body")
+        add_edit_args(create, kind)
+        create.set_defaults(func=ops_create, kind=kind)
 
     list_cmd = actions.add_parser("list", help=f"list {kind}s")
     add_common_ops_args(list_cmd)
@@ -478,6 +618,7 @@ def add_ops_commands(sub: argparse._SubParsersAction, kind: str) -> None:
     list_cmd.add_argument("--status")
     list_cmd.add_argument("--owner")
     list_cmd.add_argument("--priority")
+    list_cmd.add_argument("--all", action="store_true", help="include done/closed tasks")
     list_cmd.set_defaults(func=ops_list, kind=kind)
 
     show = actions.add_parser("show", help=f"show a {kind}")
@@ -485,22 +626,64 @@ def add_ops_commands(sub: argparse._SubParsersAction, kind: str) -> None:
     show.add_argument("id")
     show.set_defaults(func=ops_show, kind=kind)
 
-    update = actions.add_parser("update", help=f"update a {kind}")
-    add_common_ops_args(update)
-    update.add_argument("id")
-    update.add_argument("--status")
-    update.add_argument("--body")
-    add_edit_args(update, kind, include_title=True)
-    update.set_defaults(func=ops_update, kind=kind)
+    for action in ["update", "edit"]:
+        update = actions.add_parser(action, help=f"edit a {kind}")
+        add_common_ops_args(update)
+        update.add_argument("id")
+        update.add_argument("--status")
+        update.add_argument("--body")
+        add_edit_args(update, kind, include_title=True)
+        update.set_defaults(func=ops_update, kind=kind)
 
-    delete = actions.add_parser("delete", help=f"delete a {kind}")
-    add_common_ops_args(delete)
-    delete.add_argument("id")
-    delete.set_defaults(func=ops_delete, kind=kind)
+    for action in ["delete", "rm"]:
+        delete = actions.add_parser(action, help=f"delete a {kind}")
+        add_common_ops_args(delete)
+        delete.add_argument("id")
+        delete.set_defaults(func=ops_delete, kind=kind)
+
+    if kind == "task":
+        move = actions.add_parser("move", help="move a task to a kanban column")
+        add_common_ops_args(move)
+        move.add_argument("id")
+        move.add_argument("status", choices=KANBAN_COLUMNS)
+        move.set_defaults(func=task_move)
+
+        start = actions.add_parser("start", help="move a task to doing")
+        add_common_ops_args(start)
+        start.add_argument("id")
+        start.set_defaults(func=task_move, status="doing")
+
+        block = actions.add_parser("block", help="move a task to blocked")
+        add_common_ops_args(block)
+        block.add_argument("id")
+        block.set_defaults(func=task_move, status="blocked")
+
+        done = actions.add_parser("done", help="mark a task done")
+        add_common_ops_args(done)
+        done.add_argument("id")
+        done.set_defaults(func=task_done)
+
+        next_cmd = actions.add_parser("next", help="show the next open task")
+        add_task_filter_args(next_cmd)
+        next_cmd.set_defaults(func=task_next)
+
+        board = actions.add_parser("board", help="show tasks as a kanban board")
+        add_task_filter_args(board)
+        board.set_defaults(func=board_view)
 
 
 def add_common_ops_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--wiki", default=".", help="path inside or at a scridos wiki")
+
+
+def add_task_filter_args(parser: argparse.ArgumentParser) -> None:
+    add_common_ops_args(parser)
+    parser.add_argument("--project")
+    parser.add_argument("--milestone")
+    parser.add_argument("--status")
+    parser.add_argument("--owner")
+    parser.add_argument("--priority")
+    parser.add_argument("--all", action="store_true", help="include done/closed tasks")
 
 
 def add_edit_args(parser: argparse.ArgumentParser, kind: str, include_title: bool = False) -> None:

@@ -29,10 +29,13 @@ pyenv rehash
 scridos wiki init my-topic
 scridos wiki init my-topic --github
 scridos wiki init 239-eagle --title "239 Eagle Dr" --root ./wiki
-scridos wiki project create "239 Eagle Sale" --wiki ./wiki/239-eagle
-scridos wiki milestone create "Ready to list on MLS" --project 239-eagle-sale --wiki ./wiki/239-eagle
-scridos wiki task create "Sign corrected DocuSign packets" --project 239-eagle-sale --milestone ready-to-list-on-mls --wiki ./wiki/239-eagle
-scridos wiki task list --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos project add "239 Eagle Sale" --wiki ./wiki/239-eagle
+scridos milestone add "Ready to list on MLS" --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos task add "Sign corrected DocuSign packets" --project 239-eagle-sale --milestone ready-to-list-on-mls --wiki ./wiki/239-eagle
+scridos task start sign-corrected-docusign --wiki ./wiki/239-eagle
+scridos board --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos next --wiki ./wiki/239-eagle
+scridos task done sign-corrected-docusign --wiki ./wiki/239-eagle
 scridos wiki lint ./wiki/239-eagle
 ```
 
@@ -44,9 +47,12 @@ That creates `wiki/<name>/` inside the repo so the wiki can be reviewed, linked,
 versioned, and pushed like any other project artifact. This is the preferred
 mode when replacing Notion with GitHub as the operating system.
 
-Projects, milestones, and tasks are stored as plain markdown text files under
-`ops/`. Scridos does not require GitHub Issues; the repo text is the source of
-truth.
+The CLI is about the work: add tasks, move them across a kanban board, ask for
+the next action, and mark work done. Scridos stores that work as plain markdown
+under `ops/`, but callers should not need to think about the storage layout.
+
+Task statuses follow a small kanban vocabulary: `backlog`, `ready`, `doing`,
+`blocked`, and `done`.
 
 ### Initialize a new wiki
 
