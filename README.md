@@ -20,6 +20,26 @@ Dependencies (`qmd`, `marp-cli`) are installed automatically on first session st
 
 ## Usage
 
+### CLI
+
+```bash
+python -m pip install -e .
+pyenv rehash
+
+scridos wiki init my-topic
+scridos wiki init my-topic --github
+scridos wiki init 239-eagle --title "239 Eagle Dr" --root ./wiki
+scridos wiki lint ./wiki/239-eagle
+```
+
+`scridos init` and `scridos lint` are also available as short aliases for the
+same wiki operations.
+
+For GitHub-first work, run `scridos wiki init <name> --github` from a repo root.
+That creates `wiki/<name>/` inside the repo so the wiki can be reviewed, linked,
+versioned, and pushed like any other project artifact. This is the preferred
+mode when replacing Notion with GitHub as the operating system.
+
 ### Initialize a new wiki
 
 ```
