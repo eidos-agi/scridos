@@ -16,6 +16,8 @@ TODAY = date.today().isoformat()
 KINDS = ("project", "milestone", "task")
 KANBAN_COLUMNS = ("backlog", "ready", "doing", "blocked", "done")
 OPEN_STATUSES = {"open", "backlog", "ready", "doing"}
+VALID_TASK_STATUSES = {*KANBAN_COLUMNS, "open", "closed"}
+TASK_REQUIRED_FIELDS = ("id", "title", "type", "status")
 
 
 def slugify(value: str) -> str:
@@ -263,6 +265,106 @@ def board_view(args: argparse.Namespace) -> int:
             print(f"  - {fields['id']}: {fields['title']}{suffix}")
         print()
     return 0
+
+
+def task_doctor(args: argparse.Namespace) -> int:
+    root = resolve_wiki_root(args.wiki)
+    findings = task_doctor_findings(root)
+    if not findings:
+        print(f"task doctor: PASS ({record_dir(root, 'task')})")
+        return 0
+
+    errors = [item for item in findings if item[0] == "ERROR"]
+    warnings = [item for item in findings if item[0] == "WARN"]
+    print(f"task doctor: {len(errors)} error(s), {len(warnings)} warning(s)")
+    for severity, path, message in findings:
+        rel = path.relative_to(root) if path.is_relative_to(root) else path
+        print(f"{severity} {rel}: {message}")
+    return 0 if args.warn_only or not errors else 1
+
+
+def task_doctor_findings(root: Path) -> list[tuple[str, Path, str]]:
+    findings: list[tuple[str, Path, str]] = []
+    tasks = read_records(root, "task")
+    ids: dict[str, Path] = {}
+    for record in tasks:
+        path = record["path"]
+        fields = record["fields"]
+        body = record["body"]
+        text = path.read_text(encoding="utf-8", errors="replace")
+        task_id = fields.get("id", path.stem)
+
+        if task_id in ids:
+            findings.append(("ERROR", path, f"duplicate task id also used by {ids[task_id]}"))
+        ids[task_id] = path
+
+        for field in TASK_REQUIRED_FIELDS:
+            if not fields.get(field):
+                findings.append(("ERROR", path, f"missing required frontmatter field `{field}`"))
+        if fields.get("type") and fields["type"] != "task":
+            findings.append(("ERROR", path, f"type should be `task`, got `{fields['type']}`"))
+        status = fields.get("status", "")
+        if status and status not in VALID_TASK_STATUSES:
+            findings.append(("ERROR", path, f"unknown status `{status}`"))
+        if task_id and slugify(task_id) != path.stem:
+            findings.append(("WARN", path, f"id `{task_id}` does not match filename `{path.stem}`"))
+
+        source = fields.get("source", "")
+        if source and not source_exists(root, source):
+            findings.append(("ERROR", path, f"source path does not exist: {source}"))
+        if not source:
+            findings.append(("WARN", path, "missing source field"))
+
+        if "\\n" in body:
+            findings.append(("ERROR", path, "body contains literal escaped newlines (`\\n`)"))
+        if re.search(r"(?<![$\d]),\d{3}\b", body) or re.search(r"\band\s*,\d{3}\b", body):
+            findings.append(("WARN", path, "body may contain a broken imported money amount"))
+
+        headings = re.findall(r"(?m)^#\s+(.+)$", body)
+        if not headings:
+            findings.append(("WARN", path, "missing H1 heading in body"))
+        elif fields.get("title") and headings[0].strip() != fields["title"].strip():
+            findings.append(("WARN", path, "first H1 does not match title frontmatter"))
+        if len(headings) != len(set(headings)):
+            findings.append(("ERROR", path, "duplicate markdown headings detected"))
+
+        for section in ("## Outcome", "## Next Action"):
+            if section not in body:
+                findings.append(("WARN", path, f"missing `{section}` section"))
+
+        if status == "done":
+            if "## Evidence" not in body and "## Current Evidence" not in body and "## Companion Docs" not in body and not source:
+                findings.append(("ERROR", path, "done task lacks evidence/companion docs/source"))
+            if source and not source_exists(root, source):
+                findings.append(("ERROR", path, "done task source is missing"))
+
+    return findings
+
+
+def source_exists(root: Path, source: str) -> bool:
+    if not source or source.startswith(("http://", "https://")):
+        return bool(source)
+    raw = Path(source).expanduser()
+    if raw.is_absolute():
+        return raw.exists()
+    candidates = [root / raw]
+    repo = containing_git_root(root)
+    if repo:
+        candidates.append(repo / raw)
+    if len(root.parents) >= 2:
+        candidates.append(root.parents[1] / raw)
+    return any(path.exists() for path in candidates)
+
+
+def containing_git_root(path: Path) -> Path | None:
+    current = path.resolve()
+    if current.is_file():
+        current = current.parent
+    while current != current.parent:
+        if (current / ".git").exists():
+            return current
+        current = current.parent
+    return current if (current / ".git").exists() else None
 
 
 def resolve_wiki_root(path: str) -> Path:
@@ -642,6 +744,11 @@ def add_ops_commands(sub: argparse._SubParsersAction, kind: str) -> None:
         delete.set_defaults(func=ops_delete, kind=kind)
 
     if kind == "task":
+        doctor = actions.add_parser("doctor", help="validate canonical task files")
+        add_common_ops_args(doctor)
+        doctor.add_argument("--warn-only", action="store_true", help="exit 0 even when errors are found")
+        doctor.set_defaults(func=task_doctor)
+
         move = actions.add_parser("move", help="move a task to a kanban column")
         add_common_ops_args(move)
         move.add_argument("id")
