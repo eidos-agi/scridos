@@ -1,4 +1,4 @@
-# llm-wiki Walkthrough
+# scridos Walkthrough
 
 A guided tour for new users. Read this top to bottom the first time, then use it as a reference.
 
@@ -126,7 +126,7 @@ The compounding effect comes from this density. When you query the wiki, the LLM
 
 qmd provides hybrid BM25 + vector search over the wiki. For small wikis (under ~50 pages), reading `index.md` is fast enough. For larger wikis, qmd becomes essential for finding relevant pages without reading everything.
 
-The plugin always uses the full path to qmd (`~/.claude/plugins/data/llm-wiki/node_modules/.bin/qmd`) and falls back gracefully to index-based search if qmd isn't available.
+The plugin always uses the full path to qmd (`~/.claude/plugins/data/scridos/node_modules/.bin/qmd`) and falls back gracefully to index-based search if qmd isn't available.
 
 ### Auto-commit
 
@@ -156,29 +156,29 @@ ls ~/ObsidianVault/03-Resources/
 From the Claude Code marketplace:
 
 ```
-/plugin marketplace add ekadetov/llm-wiki
-/plugin install llm-wiki@llm-wiki
+/plugin marketplace add eidos-agi/scridos
+/plugin install scridos@scridos
 ```
 
 ### Verify installation
 
-In a Claude Code session, `/llm-wiki:wiki` should appear in the skill list. Try:
+In a Claude Code session, `/scridos:wiki` should appear in the skill list. Try:
 
 ```
-/llm-wiki:wiki
+/scridos:wiki
 ```
 
 You should see the argument hint: `init <name> | ingest <path|url> | compile [<path>] | query <question> | lint | remove <name>`.
 
 ### Dependencies
 
-`qmd` and `marp-cli` install automatically when you start a new Claude Code session after installing the plugin. The SessionStart hook runs `npm install` in the plugin data directory if the sentinel file `~/.claude/plugins/data/llm-wiki/.deps-ok` is missing.
+`qmd` and `marp-cli` install automatically when you start a new Claude Code session after installing the plugin. The SessionStart hook runs `npm install` in the plugin data directory if the sentinel file `~/.claude/plugins/data/scridos/.deps-ok` is missing.
 
 To verify they installed:
 
 ```bash
-ls ~/.claude/plugins/data/llm-wiki/node_modules/.bin/qmd
-ls ~/.claude/plugins/data/llm-wiki/node_modules/.bin/marp
+ls ~/.claude/plugins/data/scridos/node_modules/.bin/qmd
+ls ~/.claude/plugins/data/scridos/node_modules/.bin/marp
 ```
 
 ---
@@ -192,7 +192,7 @@ Work through these steps in order. Each step builds on the previous one.
 ### Step 1: Init a wiki
 
 ```
-/llm-wiki:wiki init test-wiki
+/scridos:wiki init test-wiki
 ```
 
 **What happens:**
@@ -245,7 +245,7 @@ cd ~/ObsidianVault/03-Resources/test-wiki
 ```
 
 ```
-/llm-wiki:wiki ingest raw/articles/2026-04-05-test-article.md
+/scridos:wiki ingest raw/articles/2026-04-05-test-article.md
 ```
 
 **What happens:**
@@ -275,7 +275,7 @@ git -C ~/ObsidianVault log --oneline -3
 ### Step 2b: Compile into wiki pages
 
 ```
-/llm-wiki:wiki compile
+/scridos:wiki compile
 ```
 
 **What happens:**
@@ -310,7 +310,7 @@ git -C ~/ObsidianVault log --oneline -3
 ### Step 3: Ingest from a URL
 
 ```
-/llm-wiki:wiki ingest https://en.wikipedia.org/wiki/Markdown
+/scridos:wiki ingest https://en.wikipedia.org/wiki/Markdown
 ```
 
 **What happens:**
@@ -324,7 +324,7 @@ This is the primary workflow for building up a wiki from web research: clip or f
 ### Step 4: Query the wiki
 
 ```
-/llm-wiki:wiki query "Who created Markdown and when?"
+/scridos:wiki query "Who created Markdown and when?"
 ```
 
 **What happens:**
@@ -357,7 +357,7 @@ Answers are automatically filed to `wiki/queries/<slug>.md`. Then the plugin off
 ### Step 5: Lint the wiki
 
 ```
-/llm-wiki:wiki lint
+/scridos:wiki lint
 ```
 
 **What happens:**
@@ -417,7 +417,7 @@ Install the [Obsidian Web Clipper](https://obsidian.md/clipper) browser extensio
 After clipping an article, run:
 
 ```
-/llm-wiki:wiki ingest ~/ObsidianVault/03-Resources/<wiki-name>/raw/<clipped-file>.md
+/scridos:wiki ingest ~/ObsidianVault/03-Resources/<wiki-name>/raw/<clipped-file>.md
 ```
 
 ### Graph view as a visual lint
@@ -446,7 +446,7 @@ LIMIT 10
 Any wiki page can become a slide deck. Add `marp: true` to the frontmatter, then run:
 
 ```bash
-~/.claude/plugins/data/llm-wiki/node_modules/.bin/marp wiki/my-page.md -o output.html
+~/.claude/plugins/data/scridos/node_modules/.bin/marp wiki/my-page.md -o output.html
 ```
 
 The source-summary template in `CLAUDE.md` includes this instruction as a reminder.
@@ -460,9 +460,9 @@ The source-summary template in `CLAUDE.md` includes this instruction as a remind
 Each topic gets its own folder under `03-Resources/`. Run `init` once per topic:
 
 ```
-/llm-wiki:wiki init machine-learning
-/llm-wiki:wiki init company-research
-/llm-wiki:wiki init book-notes
+/scridos:wiki init machine-learning
+/scridos:wiki init company-research
+/scridos:wiki init book-notes
 ```
 
 Active wiki detection picks the right one based on your cwd. Wikis don't share pages, but you can cross-reference between them using full Obsidian paths if needed.
@@ -474,7 +474,7 @@ At this scale, reading `index.md` for every query becomes slow. qmd's hybrid sea
 Signs you need qmd: queries start returning vague answers, or the LLM says it can't find relevant pages. Check that qmd is installed and the collection is up to date:
 
 ```bash
-~/.claude/plugins/data/llm-wiki/node_modules/.bin/qmd collection list
+~/.claude/plugins/data/scridos/node_modules/.bin/qmd collection list
 ```
 
 ### Contradiction handling
@@ -504,7 +504,7 @@ Use promotion when a query synthesizes something genuinely new that isn't captur
 After testing, remove the test wiki:
 
 ```
-/llm-wiki:wiki remove test-wiki
+/scridos:wiki remove test-wiki
 ```
 
 Your real wikis are unaffected. The plugin itself stays installed.
@@ -515,8 +515,8 @@ Your real wikis are unaffected. The plugin itself stays installed.
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| `/llm-wiki:wiki` not found | Plugin not installed | `/plugin install llm-wiki@llm-wiki` |
-| qmd not found | Deps not installed | Check `~/.claude/plugins/data/llm-wiki/node_modules/.bin/qmd`; start a new session to trigger the hook |
+| `/scridos:wiki` not found | Plugin not installed | `/plugin install scridos@scridos` |
+| qmd not found | Deps not installed | Check `~/.claude/plugins/data/scridos/node_modules/.bin/qmd`; start a new session to trigger the hook |
 | Git commit fails | No git user configured | `git config --global user.name "Name"` and `git config --global user.email "email"` |
 | Init fails "directory exists" | Previous test not cleaned up | Run `wiki remove <name>` to delete it cleanly |
 | Hook doesn't run on session start | hooks.json malformed | Reinstall the plugin |

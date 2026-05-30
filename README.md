@@ -1,11 +1,13 @@
-# llm-wiki
+# scridos
 
-A Claude Code plugin that builds persistent, compounding knowledge bases inside Obsidian using the Karpathy LLM Wiki pattern. Ingest sources, query synthesized knowledge, lint for gaps — all from your Claude Code session.
+A Claude Code plugin that builds persistent, compounding knowledge bases inside Obsidian using Karpathy's LLM Wiki pattern. Ingest sources, query synthesized knowledge, lint for gaps — all from your Claude Code session.
+
+> Forked from [ekadetov/llm-wiki](https://github.com/ekadetov/llm-wiki). Renamed and extended for the Eidos AGI ecosystem.
 
 ## Installation
 
 ```bash
-claude plugin install /path/to/llm-wiki
+claude plugin install /path/to/scridos
 ```
 
 ### Prerequisites
@@ -18,10 +20,44 @@ Dependencies (`qmd`, `marp-cli`) are installed automatically on first session st
 
 ## Usage
 
+### CLI
+
+```bash
+python -m pip install -e .
+pyenv rehash
+
+scridos wiki init my-topic
+scridos wiki init my-topic --github
+scridos wiki init 239-eagle --title "239 Eagle Dr" --root ./wiki
+scridos project add "239 Eagle Sale" --wiki ./wiki/239-eagle
+scridos milestone add "Ready to list on MLS" --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos task add "Sign corrected DocuSign packets" --project 239-eagle-sale --milestone ready-to-list-on-mls --wiki ./wiki/239-eagle
+scridos task start sign-corrected-docusign --wiki ./wiki/239-eagle
+scridos board --project 239-eagle-sale --wiki ./wiki/239-eagle
+scridos next --wiki ./wiki/239-eagle
+scridos task done sign-corrected-docusign --wiki ./wiki/239-eagle
+scridos wiki lint ./wiki/239-eagle
+```
+
+`scridos init`, `scridos lint`, `scridos project`, `scridos milestone`, and
+`scridos task` are also available as short aliases for the same operations.
+
+For GitHub-first work, run `scridos wiki init <name> --github` from a repo root.
+That creates `wiki/<name>/` inside the repo so the wiki can be reviewed, linked,
+versioned, and pushed like any other project artifact. This is the preferred
+mode when replacing Notion with GitHub as the operating system.
+
+The CLI is about the work: add tasks, move them across a kanban board, ask for
+the next action, and mark work done. Scridos stores that work as plain markdown
+under `ops/`, but callers should not need to think about the storage layout.
+
+Task statuses follow a small kanban vocabulary: `backlog`, `ready`, `doing`,
+`blocked`, and `done`.
+
 ### Initialize a new wiki
 
 ```
-/llm-wiki:wiki init my-topic
+/scridos:wiki init my-topic
 ```
 
 Creates `~/ObsidianVault/03-Resources/my-topic/` with the full wiki structure: `raw/`, `wiki/`, `CLAUDE.md` schema, indexes, and git tracking.
@@ -29,8 +65,8 @@ Creates `~/ObsidianVault/03-Resources/my-topic/` with the full wiki structure: `
 ### Ingest a source
 
 ```
-/llm-wiki:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
-/llm-wiki:wiki ingest https://example.com/interesting-article
+/scridos:wiki ingest ~/ObsidianVault/03-Resources/my-topic/raw/article.md
+/scridos:wiki ingest https://example.com/interesting-article
 ```
 
 Saves the source to `raw/articles/`. Does not create wiki pages — use `compile` for that.
@@ -38,8 +74,8 @@ Saves the source to `raw/articles/`. Does not create wiki pages — use `compile
 ### Compile raw sources into wiki
 
 ```
-/llm-wiki:wiki compile
-/llm-wiki:wiki compile ~/ObsidianVault/03-Resources/my-topic/raw/articles/2026-04-05-article.md
+/scridos:wiki compile
+/scridos:wiki compile ~/ObsidianVault/03-Resources/my-topic/raw/articles/2026-04-05-article.md
 ```
 
 Reads uncompiled raw sources, creates/updates wiki pages (source summary, concept pages, person pages), updates the index, and commits.
@@ -47,7 +83,7 @@ Reads uncompiled raw sources, creates/updates wiki pages (source summary, concep
 ### Query the wiki
 
 ```
-/llm-wiki:wiki query "What is the relationship between X and Y?"
+/scridos:wiki query "What is the relationship between X and Y?"
 ```
 
 Searches the wiki (via qmd if available, otherwise index.md), reads relevant pages, and synthesizes an answer with `[[wikilink]]` citations. Offers to file the answer back into the wiki.
@@ -55,7 +91,7 @@ Searches the wiki (via qmd if available, otherwise index.md), reads relevant pag
 ### Lint the wiki
 
 ```
-/llm-wiki:wiki lint
+/scridos:wiki lint
 ```
 
 Checks for dead links, orphan pages, missing sections, contradictions, stale pages, and index drift. Auto-fixes what it can.
@@ -63,7 +99,7 @@ Checks for dead links, orphan pages, missing sections, contradictions, stale pag
 ### Remove a wiki
 
 ```
-/llm-wiki:wiki remove my-topic
+/scridos:wiki remove my-topic
 ```
 
 Deletes the wiki directory, removes the qmd collection, and commits the deletion.
@@ -75,6 +111,10 @@ Deletes the wiki directory, removes the qmd collection, and commits the deletion
 ├── raw/                  ← immutable source drops (never edited by LLM)
 │   ├── articles/         ← text source documents
 │   └── attachments/      ← images
+├── ops/                  ← text-backed project work
+│   ├── projects/         ← one markdown file per project
+│   ├── milestones/       ← one markdown file per milestone
+│   └── tasks/            ← one markdown file per task
 ├── wiki/                 ← LLM-owned pages
 │   ├── index.md          ← catalog (read first)
 │   ├── queries/          ← filed query answers
@@ -100,7 +140,7 @@ qmd provides hybrid search (BM25 + vector) over the wiki. It's optional — the 
 ## Uninstall
 
 ```bash
-claude plugin uninstall llm-wiki
+claude plugin uninstall scridos
 ```
 
 This removes the plugin and its dependency cache. Your wiki data in `~/ObsidianVault/` is preserved.

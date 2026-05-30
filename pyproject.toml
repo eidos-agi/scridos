@@ -1,0 +1,11 @@
+[project]
+name = "scridos"
+version = "0.1.0"
+description = "CLI and Claude plugin for persistent, compounding markdown wikis."
+requires-python = ">=3.10"
+
+[project.scripts]
+scridos = "scridos_cli:main"
+
+[tool.setuptools]
+py-modules = ["scridos_cli"]
